@@ -60,6 +60,12 @@ def handle_join(data):
         emit('message', {'msg': uname + ' has entered the room.'}, room=code)
     else:
         emit('message', {'msg':'Please enter valid code'})
-
+def update_room(code):
+    for room in room_details:
+        if room['code'] == code:  # Check if the room code matches
+            room['members'] += 1  # Increase the members count by 1
+            break
+    else:
+        room_details.append({'code': code, 'members': 1})
     
 app.run(debug=True)
