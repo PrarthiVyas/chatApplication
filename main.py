@@ -8,8 +8,10 @@ app=Flask(__name__)
 app.config['SECRET_KEY']="abc"
 socketio=SocketIO(app,cors_allowed_origins="*")
 codes=[]
-members=0
+room_details = []
 
+# Dictionary to track which user is in which room
+user_rooms = {}
 @socketio.on("connect")
 def connect():
     print("connected")
@@ -42,30 +44,61 @@ def leaveRoom():
     code = session.get('code')  # Get the room code from session
     
     if username and code:
-        leave_room(code)  # Leave the room
-        session.clear()  # Clear the session data     
+        leave_room(code)
+        update_leave_room(code)
+        print(room_details)  # Leave the room
+        session.clear()  # Clear the session data
+        
         # Emit message to all users in the room
         emit('room_message', f"{username} has left the room", room=code)
     else:
         print("Session data missing: username or room code.")
 
-@socketio.on("join")
-def handle_join(data):
-    uname = data['username']
-    code = data['code']
-    if code == session.get('code') or members>0:
-        join_room(code)
-        session['code']=code
-        session['uname']=uname
-        emit('message', {'msg': uname + ' has entered the room.'}, room=code)
-    else:
-        emit('message', {'msg':'Please enter valid code'})
+
 def update_room(code):
     for room in room_details:
         if room['code'] == code:  # Check if the room code matches
             room['members'] += 1  # Increase the members count by 1
             break
     else:
+        # If room doesn't exist, you can add a new room with 1 member
         room_details.append({'code': code, 'members': 1})
+
+def update_leave_room(code):
+    for room in room_details:
+        if room['code'] == code:
+            if room['members'] > 1 :  # Check if the room code matches
+                room['members'] -= 1  # Increase the members count by 1
+                break
+            else:
+                room_details.remove(room)
+                break
+    
+
+@socketio.on("join")
+def handle_join(data):
+    global members
+    uname = data['username']
+    code = data['code']
+    flag=False
+    if 'uname' not in session:
+        if session.get('code')==code:
+            flag=True
+        else:
+            for room in room_details:
+                if room['code'] == code:
+                    flag = True
+        if flag == True:
+            join_room(code)
+            update_room(code)
+            print(room_details)
+            session['code']=code
+            session['uname']=uname
+            emit('message', {'msg': uname + ' has entered the room.'}, room=code)
+
+    elif 'uname' in session:
+        emit('message', {'msg': 'You are already in the room.'})
+    else:
+        emit('message', {'msg': 'Invalid room code.'})
     
 app.run(debug=True)
