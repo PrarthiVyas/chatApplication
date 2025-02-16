@@ -3,7 +3,6 @@ from flask_socketio import SocketIO,send, join_room, leave_room, emit
 import random
 from string import ascii_uppercase
 
-
 app=Flask(__name__)
 app.config['SECRET_KEY']="abc"
 socketio=SocketIO(app,cors_allowed_origins="*")
@@ -100,5 +99,10 @@ def handle_join(data):
         emit('message', {'msg': 'You are already in the room.'})
     else:
         emit('message', {'msg': 'Invalid room code.'})
+            
+    
+    
+    
+    
     
 app.run(debug=True)
