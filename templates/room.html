@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Room</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background-color: #f4f4f9;
+      }
+      header {
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-size: 1.5rem;
+      }
+      .container {
+        padding: 20px;
+        max-width: 600px;
+        margin: 20px auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      input[type="text"] {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px 0;
+        border: none;
+        border-radius: 4px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #messages {
+        border: 1px solid #ddd;
+        height: 200px;
+        overflow-y: scroll;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+      p {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>Chat Room</header>
+    <div class="container">
+      <a href="{{ url_for('createRoom') }}">
+        <button>Create room</button>
+      </a>
+      {% if code %}
+      <p>{{ code }}</p>
+      {% endif %}
+
+      <input id="username" placeholder="Enter your name" type="text" />
+      <input id="code" placeholder="Enter your room number" type="text" />
+      <button type="button" id="join">Join Room</button>
+
+      {% if error %}
+      <p>{{ error }}</p>
+      {% endif %}
+
+      <div id="messages"></div>
+
+      <input type="text" placeholder="Message" id="messageInput" />
+      <button id="sendMessage">Send Message</button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+      const socket = io();
+      let messageContainer = document.querySelector(".container")
+      const newButton = document.createElement("button");
+
+      document.getElementById("join").onclick = () => {
+       
+        const username = document.getElementById("username").value;
+        const code = document.getElementById("code").value;
+        socket.emit("join", { username, code });
+        
+
+      };
+
+      socket.on("message", function (data) {
+        const messagesDiv = document.getElementById("messages");
+        const joinmsg = data.msg;
+        messagesDiv.innerHTML += `<p>${joinmsg}</p>`;
+        if (joinmsg.includes("has entered the room")) {
+          newButton.innerText = "Leave Room";
+          messageContainer.appendChild(newButton)       
+         }
+
+
+      });
+
+      document.getElementById("sendMessage").onclick = () => {
+        const messageInput = document.getElementById("messageInput");
+        const message = messageInput.value;
+        socket.emit("message1", message);
+        messageInput.value = "";
+      };
+
+      socket.on("message1", (d) => {
+        const messagesDiv = document.getElementById("messages");
+        const username = document.getElementById("username").value;
+        messagesDiv.innerHTML += `<P><strong>${d.Name}</strong>:${d.Message}</p>`;
+      });
+      newButton.addEventListener("click", function() {
+        socket.emit("leave");
+        document.getElementById("messageInput").value = "";
+        document.getElementById("username").value="";
+        document.getElementById("code").value="";
+        document.getElementById("messages").innerHTML = "";
+        messageContainer.removeChild(newButton)
+
+
+});
+
+socket.on("room_message", function(msg) {
+    console.log("Received room message: ", msg);  // Debugging output
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML += `<p>${msg}</p>`;  // Append the message to the messages div
+});
+    </script>
+  </body>
+</html>
